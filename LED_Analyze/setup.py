@@ -15,4 +15,6 @@ setup(
     install_requires=[
         "numpy",
         "matplotlib",
-        "openpyxl"])
+        "openpyxl"],
+    classifiers=(
+        "Programming Language :: Python :: 3"))
