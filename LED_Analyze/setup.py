@@ -7,7 +7,7 @@ Version: 1.0
 from setuptools import setup
 
 setup(
-    name="LED_Analyze",
+    name="ledanalyze",
     description="Process colorimetry data",
     url="https://github.com/pougivan/LED_Analyze",
     author="pougivan",
