@@ -11,7 +11,7 @@ setup(
     description="Process colorimetry data",
     url="https://github.com/pougivan/LED_Analyze",
     author="pougivan",
-    packages=["LED_Analyze"]
+    packages=["LED_Analyze"],
     install_requires=[
         "numpy",
         "matplotlib",
