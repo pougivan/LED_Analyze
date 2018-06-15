@@ -9,6 +9,7 @@ from setuptools import setup
 setup(
     name="ledanalyze",
     description="Process colorimetry data",
+    version="1.0",
     url="https://github.com/pougivan/LED_Analyze",
     author="pougivan",
     packages=["LED_Analyze"],
