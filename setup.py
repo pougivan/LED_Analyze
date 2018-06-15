@@ -12,7 +12,7 @@ setup(
     version="1.0",
     url="https://github.com/pougivan/LED_Analyze",
     author="pougivan",
-    packages=["LED_Analyze"],
+    packages=setuptools.find_packages(),
     install_requires=[
         "numpy",
         "matplotlib",
