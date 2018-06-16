@@ -9,6 +9,10 @@ LED_Analyze/gui_input_template.py
 LED_Analyze/gui_main.py
 LED_Analyze/gui_output.py
 LED_Analyze/main.py
+LED_Analyze/calc/__init__.py
+LED_Analyze/calc/calc_basic.py
+LED_Analyze/calc/calc_common.py
+LED_Analyze/calc/calc_led.py
 ledanalyze.egg-info/PKG-INFO
 ledanalyze.egg-info/SOURCES.txt
 ledanalyze.egg-info/dependency_links.txt
