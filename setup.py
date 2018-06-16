@@ -4,7 +4,7 @@ Date: 15 June 2018
 By: Ivan Pougatchev
 Version: 1.0
 """
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name="ledanalyze",
@@ -12,7 +12,7 @@ setup(
     version="1.0",
     url="https://github.com/pougivan/LED_Analyze",
     author="pougivan",
-    packages=setuptools.find_packages(),
+    packages=find_packages(),
     install_requires=[
         "numpy",
         "matplotlib",
