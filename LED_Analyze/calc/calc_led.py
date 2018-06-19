@@ -213,13 +213,11 @@ class GenMask(CalcProcess):
         ("TextEntryFrame", "out_name_mask", ("Mask Name:", 300, 120)),
         ("CheckEntryFrame", "to_db", "Save Mask to DB?"),
         ("TextEntryFrame", "offset", ("Offset [mm]:", 200, 100)),
-        ("SpboxFrame", "count", ("Sensitivity:", list(range(1, 33)), 200, 100)),
-        ("SpboxFrame", "thresh", 
-         ("Step Threshold:", thresh_list, 200, 100))
+        ("SpboxFrame", "count", ("Sensitivity:", list(range(1, 33)), 200, 100))
         ]
     
     def __init__(self, out_name_mask, to_db, lum_in, dims_in, 
-                 offset, count, thresh):
+                 offset, count):
         
         self.name = "Generate Mask"
         self.out_name_mask = out_name_mask
@@ -228,7 +226,6 @@ class GenMask(CalcProcess):
         self.dims_in = dims_in
         self.offset = offset
         self.count = count
-        self.thresh = thresh
         
         CalcProcess.__init__(self, list(set((lum_in.calc, dims_in.calc))))
         
@@ -257,11 +254,19 @@ class GenMask(CalcProcess):
         # Generate the initial mask array using a logarithmic histogram to
         # separate out the illuminated region of the data.
         n, bins = np.histogram(
-            data, np.logspace(
-                np.log10(0.1), np.log10(np.max(data)), 100))
-        bin_thresh = np.where(bins > int(self.thresh))[0][0]
-        bin_peak = np.argmax(n[bin_thresh:]) + bin_thresh     
-        threshold = bins[bin_peak-10 + np.argmin(n[bin_peak-10 : bin_peak])]
+            data, 
+            np.logspace(
+                np.log10(2*self.dims_in.read_data[6]), 
+                np.log10(np.max(data)), 
+                int(np.prod(data.shape)**0.5 / 4)))
+        i_peak_n = np.argmax(n) + 1
+        bin_diff = np.diff(n[np.max((0, i_peak_n-20)) : i_peak_n+1])
+        i_max_roc = np.argmax(bin_diff)
+        
+        i = i_max_roc
+        while bin_diff[i] > 0.10 * bin_diff[i_max_roc]:
+            i -= 1
+        threshold = bins[np.max((0, i_peak_n-20)) + i]
         
         for (i, j), val in np.ndenumerate(data):
             if val < threshold:
@@ -382,8 +387,14 @@ class Uniformity(CalcProcess):
                          
                     C, _, _, _ = np.linalg.lstsq(A, z, rcond=None)
                     
-                    # Get uniformity based on best fit plane normal
-                    uni_out[i, j] = abs((C[0] ** 2 + C[1] ** 2) ** 0.5 / 1)
+                    # Spatial component of plane normal vector
+                    n_s = ((C[0]**2 + C[1]**2) / (C[0]**2 + C[1]**2 + 1)) ** 0.5
+                    
+                    # Value component of plane normal vector
+                    n_v = (1 / (C[0]**2 + C[1]**2 + 1)) ** 0.5
+                    
+                    # The uniformity is the slope of the surface
+                    uni_out[i, j] = n_s / n_v
                 else:
                     uni_out[i, j] = uni_out[i - i % r, j - j % r]
          
@@ -464,12 +475,20 @@ class HeatmapStats(CalcProcess):
         
         data_filtered = data_in[data_in > noise_threshold]
         
-        data_mean = float(np.mean(data_filtered))
-        data_max = float(np.max(data_filtered))
-        data_median = float(np.percentile(data_filtered, 50))
-        data_p75 = float(np.percentile(data_filtered, 75))
-        data_p95 = float(np.percentile(data_filtered, 95))
-        data_p99 = float(np.percentile(data_filtered, 99))
+        try:
+            data_mean = float(np.mean(data_filtered))
+            data_max = float(np.max(data_filtered))
+            data_median = float(np.percentile(data_filtered, 50))
+            data_p75 = float(np.percentile(data_filtered, 75))
+            data_p95 = float(np.percentile(data_filtered, 95))
+            data_p99 = float(np.percentile(data_filtered, 99))
+        except ValueError:  # Handle completely masked data
+            data_mean = 0
+            data_max = 0
+            data_median = 0
+            data_p75 = 0
+            data_p95 = 0
+            data_p99 = 0
         
         # Generate histogram
         if self.log_hist:
@@ -707,7 +726,7 @@ class DominantWL(CalcProcess):
         c_x = self.c_x_in.read_data
         c_y = self.c_y_in.read_data
         mask = self.mask_in.read_data
-        wlmap = np.full(c_x.shape, 0)
+        wlmap = np.full(c_x.shape, 0.)
         
         # Standard D65 illuminant white point
         white_pt = (0.31271, 0.32902)
@@ -784,32 +803,33 @@ class DominantWL(CalcProcess):
         
         # Sift out points where a valid wavelength was found or where
         # a purple hue was found
-        wlmap_masked_wl = np.ma.masked_less(wlmap, 360)
-        wlmap_masked_ph = np.ma.masked_outside(wlmap, 0.00000001, 1.00000001)
+        wlmap_filter_wl = wlmap[wlmap >= 360]
+        wlmap_filter_ph = wlmap[wlmap < 360]
+        wlmap_filter_ph = wlmap_filter_ph[wlmap_filter_ph > 0]
+        np.savetxt('testwl.txt', wlmap)
         
-        n_wl, bins_wl = np.histogram(wlmap, 94, (360, 830))
-        n_ph, bins_ph = np.histogram(wlmap, 25, (0.00000001, 1.00000001))
-        
-        if not wlmap_masked_wl.mask.all():
-            wl_mean = np.mean(wlmap_masked_wl)
+        if len(wlmap_filter_wl) > 0:
+            n_wl, bins_wl = np.histogram(wlmap_filter_wl, 94, (360, 830))
+            wl_mean = np.mean(wlmap_filter_wl)
             wl_mode = bins_wl[np.argmax(n_wl)]
         else:
+            n_wl, bins_wl = np.full(94, 0.0001), np.linspace(360, 830, 95)
             wl_mean = 0
+            wl_mode = 0
+        
+        if len(wlmap_filter_ph) > 0:
+            n_ph, bins_ph = np.histogram(wlmap_filter_ph, 25, (0, 1))
+            ph_mean = np.mean(wlmap_filter_ph)
+            ph_mode = bins_wl[np.argmax(n_ph)]
+        else:
+            n_ph, bins_ph = np.full(25, 0.0001), np.linspace(0, 1, 26)
+            ph_mean = 0
             ph_mode = 0
         
-        if not wlmap_masked_ph.mask.all():
-            ph_mean = np.mean(wlmap_masked_ph)
-            ph_mode = bins_ph[np.argmax(n_ph)]
-        else:
-            ph_mean = 0
-            ph_mode = 0        
-        
-        # Convert any purple hue values in wlmap to the nearest spectral value
+        # To a large value that will be converted to gray in the heatmap
         for (i, j), _ in np.ndenumerate(wlmap):
-            if 0 < wlmap[i, j] <= 0.5:
-                wlmap[i, j] = 360
-            elif 0.5 < wlmap[i, j] <= 1:
-                wlmap[i, j] = 830
+            if 0 < wlmap[i, j] <= 1:
+                wlmap[i, j] = 10000
                 
         wl_hist_arr = np.array(list(zip(bins_wl, n_wl)))
         ph_hist_arr = np.array(list(zip(bins_ph, n_ph)))
