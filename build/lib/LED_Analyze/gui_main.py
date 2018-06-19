@@ -9,7 +9,7 @@ from tkinter import *
 from tkinter import messagebox, filedialog
 import numpy as np
 import pickle
-from os.path import splitext
+from os.path import splitext, split, exists
 
 from analysis_main import *
 from gui_input_template import *
@@ -224,10 +224,12 @@ class DatabaseSelectFrame(LabelFrame):
             initialdir="C:\\",
             filetypes=[("Database Files", "*.bd")])
         
-        path, tail = splitext(path)
-        path = path + ".bd"        
+        path, _ = splitext(path)
+        dir, _ = split(path)
         
-        self.path.set(path)
+        if exists(dir):
+            path = path + ".bd"        
+            self.path.set(path)
         
         # Set valid keys as the list of possible data sets for output
         # report generation and close database

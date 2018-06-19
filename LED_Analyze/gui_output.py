@@ -311,13 +311,6 @@ class HeatmapTemplate(ReportElementTemplate):
         label = self.generate_label()
         
         # Check all inputs
-        if len(self.master.master.input_keys) == 0:
-            messagebox.showerror(
-                "No Input Data Sets",
-                "No input data sets were found. Either there is no database "
-                + "selected, or the selected database has no valid data. "
-                + "You should really do something about that.")
-        
         arr_name = self.arr_name.combox_input.get()
         if self.include_ll:
             ll_name = self.ll_name.combox_input.get()
@@ -362,7 +355,7 @@ class HeatmapTemplate(ReportElementTemplate):
         if self.title == "Dominant Wavelength Heatmap":
             cmap = LinearSegmentedColormap('Spectrum', spec_dict_wl)
             max_val = 830
-            min_val = 380
+            min_val = 360
             cmap.set_under('white')
             cmap.set_over('gray')
         else:
@@ -375,6 +368,7 @@ class HeatmapTemplate(ReportElementTemplate):
         im = ax0.pcolormesh(
             x, y, z, cmap=cmap, 
             norm=Normalize(vmin=min_val, vmax=max_val))
+        ax0.set_aspect('equal')
         cbar = fig.colorbar(im, ax=ax0)
         if self.title == "Luminance Heatmap" or \
                 self.title == "Light Leakage Heatmap":
@@ -395,6 +389,21 @@ class HeatmapTemplate(ReportElementTemplate):
             return fig
     
     def preview(self):
+        
+        if self.db_path == "":
+            messagebox.showerror(
+                "No Database",
+                "You might want to select a database with with data in "
+                + "it. Just a suggestion. Right now you're trying to "
+                + "preview nothingness.")
+        
+        if len(self.master.master.input_keys) == 0:
+            messagebox.showerror(
+                "No Input Data Sets",
+                "No input data sets were found. Either there is no database "
+                + "selected, or the selected database has no valid data. "
+                + "You should really do something about that.")        
+        
         self.generate_plot()
         plt.show()
 
@@ -422,14 +431,6 @@ class Hist1DTemplate(ReportElementTemplate):
         
         # Get label
         label = self.generate_label()
-        
-        # Check all inputs
-        if len(self.master.master.input_keys) == 0:
-            messagebox.showerror(
-                "No Input Data Sets",
-                "No input data sets were found. Either there is no database "
-                + "selected, or the selected database has no valid data. "
-                + "You should really do something about that.")
         
         arr_name = self.arr_name.combox_input.get()
         
@@ -488,6 +489,21 @@ class Hist1DTemplate(ReportElementTemplate):
             return fig
     
     def preview(self):
+        
+        if self.db_path == "":
+            messagebox.showerror(
+                "No Database",
+                "You might want to select a database with with data in "
+                + "it. Just a suggestion. Right now you're trying to "
+                + "preview nothingness.")
+        
+        if len(self.master.master.input_keys) == 0:
+            messagebox.showerror(
+                "No Input Data Sets",
+                "No input data sets were found. Either there is no database "
+                + "selected, or the selected database has no valid data. "
+                + "You should really do something about that.")   
+        
         self.generate_plot()
         plt.show()
 
@@ -532,14 +548,6 @@ class Hist2DTemplate(ReportElementTemplate):
         # Get label
         label = self.generate_label()
         
-        # Check all inputs
-        if len(self.master.master.input_keys) == 0:
-            messagebox.showerror(
-                "No Input Data Sets",
-                "No input data sets were found. Either there is no database "
-                + "selected, or the selected database has no valid data. "
-                + "You should really do something about that.")
-        
         xbins_name = self.xbins_name.combox_input.get()
         ybins_name = self.ybins_name.combox_input.get()
         count_name = self.count_name.combox_input.get()
@@ -581,6 +589,21 @@ class Hist2DTemplate(ReportElementTemplate):
             return fig
     
     def preview(self):
+        
+        if self.db_path == "":
+            messagebox.showerror(
+                "No Database",
+                "You might want to select a database with with data in "
+                + "it. Just a suggestion. Right now you're trying to "
+                + "preview nothingness.")
+        
+        if len(self.master.master.input_keys) == 0:
+            messagebox.showerror(
+                "No Input Data Sets",
+                "No input data sets were found. Either there is no database "
+                + "selected, or the selected database has no valid data. "
+                + "You should really do something about that.")   
+        
         self.generate_plot()
         plt.show()
 

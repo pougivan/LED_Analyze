@@ -200,8 +200,9 @@ class GenMask(CalcProcess):
     The image is converted to a boolean mask that is manipulated and fitted
     to optimally match the luminance data. 
     """
-    thresh_list = list(set(np.logspace(0, 3, dtype=int)))
+    thresh_list = list(set(np.logspace(0, 3, 100, dtype=int)))
     thresh_list.sort()
+    thresh_list = ["Auto"] + thresh_list
     
     gui_commands = [
         ("ComboboxFrame",
@@ -213,11 +214,13 @@ class GenMask(CalcProcess):
         ("TextEntryFrame", "out_name_mask", ("Mask Name:", 300, 120)),
         ("CheckEntryFrame", "to_db", "Save Mask to DB?"),
         ("TextEntryFrame", "offset", ("Offset [mm]:", 200, 100)),
-        ("SpboxFrame", "count", ("Sensitivity:", list(range(1, 33)), 200, 100))
+        ("SpboxFrame", "count", ("Sensitivity:", list(range(1, 33)), 200, 100)),
+        ("SpboxFrame", "thresh", 
+         ("Step Threshold:", thresh_list, 200, 100))
         ]
     
     def __init__(self, out_name_mask, to_db, lum_in, dims_in, 
-                 offset, count):
+                 offset, count, thresh):
         
         self.name = "Generate Mask"
         self.out_name_mask = out_name_mask
@@ -226,6 +229,7 @@ class GenMask(CalcProcess):
         self.dims_in = dims_in
         self.offset = offset
         self.count = count
+        self.thresh = thresh
         
         CalcProcess.__init__(self, list(set((lum_in.calc, dims_in.calc))))
         
@@ -253,20 +257,24 @@ class GenMask(CalcProcess):
         
         # Generate the initial mask array using a logarithmic histogram to
         # separate out the illuminated region of the data.
-        n, bins = np.histogram(
-            data, 
-            np.logspace(
-                np.log10(2*self.dims_in.read_data[6]), 
-                np.log10(np.max(data)), 
-                int(np.prod(data.shape)**0.5 / 4)))
-        i_peak_n = np.argmax(n) + 1
-        bin_diff = np.diff(n[np.max((0, i_peak_n-20)) : i_peak_n+1])
-        i_max_roc = np.argmax(bin_diff)
+        if self.thresh == "Auto":
+            n, bins = np.histogram(
+                data, 
+                np.logspace(
+                    np.log10(2*self.dims_in.read_data[6]), 
+                    np.log10(np.max(data)), 
+                    int(np.prod(data.shape)**0.5 / 4)))
+            i_peak_n = np.argmax(n) + 1
+            bin_diff = np.diff(n[np.max((0, i_peak_n-20)) : i_peak_n+1])
+            i_max_roc = np.argmax(bin_diff)
+            
+            i = i_max_roc
+            while bin_diff[i] > 0.10 * bin_diff[i_max_roc]:
+                i -= 1
+            threshold = bins[np.max((0, i_peak_n-20)) + i]
         
-        i = i_max_roc
-        while bin_diff[i] > 0.10 * bin_diff[i_max_roc]:
-            i -= 1
-        threshold = bins[np.max((0, i_peak_n-20)) + i]
+        else:
+            threshold = int(self.thresh)
         
         for (i, j), val in np.ndenumerate(data):
             if val < threshold:
@@ -830,7 +838,7 @@ class DominantWL(CalcProcess):
         for (i, j), _ in np.ndenumerate(wlmap):
             if 0 < wlmap[i, j] <= 1:
                 wlmap[i, j] = 10000
-                
+        
         wl_hist_arr = np.array(list(zip(bins_wl, n_wl)))
         ph_hist_arr = np.array(list(zip(bins_ph, n_ph)))
         
