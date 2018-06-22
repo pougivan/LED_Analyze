@@ -814,7 +814,6 @@ class DominantWL(CalcProcess):
         wlmap_filter_wl = wlmap[wlmap >= 360]
         wlmap_filter_ph = wlmap[wlmap < 360]
         wlmap_filter_ph = wlmap_filter_ph[wlmap_filter_ph > 0]
-        np.savetxt('testwl.txt', wlmap)
         
         if len(wlmap_filter_wl) > 0:
             n_wl, bins_wl = np.histogram(wlmap_filter_wl, 94, (360, 830))
